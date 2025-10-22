@@ -19,7 +19,7 @@ app.use(cookieParser())
 import userRouter from "./routes/user.routes.js"
 
 // routes declaration
-app.use("api/v1/users",userRouter)    // using a use instead of get because you make separate files for controller and routes 
+app.use("/api/v1/users",userRouter)    // using a use instead of get because you make separate files for controller and routes 
 
 // http://localhost:8000/api/v1/users/register
 
