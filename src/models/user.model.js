@@ -90,4 +90,5 @@ userSchema.methods.generateRefreshToken = function () {
     )
 }
 
+// this User is change into -> users in mongodb database
 export const User = mongoose.model("User", userSchema)

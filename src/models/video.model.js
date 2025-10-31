@@ -43,4 +43,5 @@ const videoSchema = new Schema(
 
 videoSchema.plugin(mongooseAggregatePaginate)
 
+// this Video is change to -> videos in mongodb database
 export const Video = mongoose.model("Video", videoSchema)
