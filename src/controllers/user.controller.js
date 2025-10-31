@@ -347,6 +347,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 })
 
 
+// aggregation pipeline for Channel Profile
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     // get profile(url) using req.params in username
     const { username } = req.params
@@ -356,10 +357,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         throw new ApiError(400, "username is missing")
     }
 
-// $match → Filters documents based on given conditions (like a query filter).
-// $lookup → Performs a left outer join with another collection to combine related data.
-// $addFields → Adds new fields or modifies existing ones in the documents.
-// $project → Selects, includes, or excludes specific fields to shape the output.
+    // $match → Filters documents based on given conditions (like a query filter).
+    // $lookup → Performs a left outer join with another collection to combine related data.
+    // $addFields → Adds new fields or modifies existing ones in the documents.
+    // $project → Selects, includes, or excludes specific fields to shape the output.
 
     // aggregate() return array 
     const channel = await User.aggregate([
@@ -398,7 +399,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             }
         },
         {
-            $addFields: 
+            $addFields:
             {
                 subscribersCount: {
                     $size: "$subscribers"
@@ -417,7 +418,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             }
         },
         {
-            $project: 
+            $project:
             {
                 fullname: 1,
                 username: 1,
@@ -430,15 +431,76 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             }
         }
     ])
-    if(!channel?.length){
+    if (!channel?.length) {
         throw new ApiError(404, "channel does not exists")
     }
 
     return res
+        .status(200)
+        .json(
+            new ApiResponse(200, channel[0], "User channel fetched successfully")
+        )
+})
+
+
+// aggregation pipeline for Watch History
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match:
+            {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:
+            {
+                // this Video is change into -> videos in mongodb database
+                // check in video.model.js
+                from: "videos",  // in video.Model v
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        // this User is change into -> users in mongodb database
+                        // check in user.model.js
+                        $lookup:
+                        {
+                            from: "users",  // in video.Model v
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline:[
+                                {
+                                    $project:
+                                    {
+                                        fullname:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        // it is difficult to access array[0] value,
+                        // change array into owner Object use (.) method to access all entity
+                        $addFields:
+                        {
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
     .status(200)
-    .json(
-        new ApiResponse(200, channel[0], "User channel fetched successfully")
-    )
+    .json(new ApiResponse(200,user[0].watchHistory, "Watch history fetched successfully"))
 })
 
 
@@ -458,5 +520,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
